@@ -1,14 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-num_classes = 201
-input_sizes = [28, 32, 48]
-kernel_sizes = [3, 5, 7]
-dropout_rates = [0.05, 0.1, 0.2, 0.4]
-n_features  = [16,32,64]
-optimizers = [tf.keras.optimizers.SGD(lr=0.01), tf.keras.optimizers.RMSprop(lr=0.0001)]
-n_conv_layers = [1,2,3]
-
 def assemble_model(
     input_size = 28, 
     kernel_size=5, 
@@ -39,6 +31,10 @@ def assemble_model(
         optimizer=optimizer,
         metrics=[tf.keras.metrics.categorical_accuracy],)
 
+    return model
+
+def assemble_data_generators(img_size = 28):
+
     train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
             # rescale=1./255,
             shear_range=0.2,
@@ -47,7 +43,7 @@ def assemble_model(
 
     train_generator = train_datagen.flow_from_directory(
         directory=r"./tf_files/numbers_train/",
-        target_size=(input_size, input_size),
+        target_size=(img_size, img_size),
         color_mode="grayscale",
         batch_size=32,
         class_mode="categorical",
@@ -63,13 +59,31 @@ def assemble_model(
 
     valid_generator = valid_datagen.flow_from_directory(
         directory=r"./tf_files/numbers_test/",
-        target_size=(input_size, input_size),
+        target_size=(img_size, img_size),
         color_mode="grayscale",
         batch_size=32,
         class_mode="categorical",
         shuffle=True,
         seed=42
     )
+    return train_generator, valid_generator
+
+def train_model(model, train_generator, test_generator):
+    
+
+
+if __name__=='__main__':
+
+num_classes = 201
+input_sizes = [28, 32, 48]
+kernel_sizes = [3, 5, 7]
+dropout_rates = [0.05, 0.1, 0.2, 0.4]
+n_features  = [16,32,64]
+optimizers = [tf.keras.optimizers.SGD(lr=0.01), tf.keras.optimizers.RMSprop(lr=0.0001)]
+n_conv_layers = [1,2,3]
+
+
+
 
 STEP_SIZE_TRAIN=train_generator.n//train_generator.batch_size
 STEP_SIZE_VALID=valid_generator.n//valid_generator.batch_size
