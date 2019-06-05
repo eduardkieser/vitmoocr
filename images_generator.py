@@ -2,7 +2,7 @@
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import random
 from glob import glob
 import os
@@ -58,34 +58,20 @@ def generate_image(font, text, rotation, shape,text_color,back_color,text_offset
 
 
     txt_img = Image.fromarray(txt_img)
-
     txt_img = txt_img.rotate(rotation)
-
     bak_img.paste(ImageOps.colorize(txt_img, text_color, text_color), text_offset,  txt_img)
-
     img = bak_img
-
     img = img.filter(ImageFilter.BLUR)
-
     img = img.resize((im_width, im_height))
-
     # noise_mask = create_noise_mask(im_width, im_height)
-
     gaussian_mask = get_gaussian_mask(im_width, im_height)
-
     np_img = np.array(img)
-
     # np_img = np_img+noise_mask
-
     np_img = np_img+gaussian_mask
-
     np_img = np.clip(np_img,0,255)
-
     im_mean = np_img.mean()
     im_std = np_img.std()
-
     img = Image.fromarray(np_img,'RGB')
-
     img = img.resize(final_shape)
 
     return img
@@ -101,7 +87,15 @@ def get_light_color():
             random.randint(117,255))
 
 
-def create_image_batch(i_start,i_stop,folder_name, final_size=28):
+def create_image_batch(i_stop, folder_path, final_size, start_fresh):
+
+    i_start = 0;
+
+    if start_fresh:
+        if os.path.isdir(folder_path):
+            shutil.rmtree(folder_path)
+
+    font_paths =glob('./vitmoocr/fonts/*.ttf')
 
     final_shape = (final_size,final_size)
     
@@ -136,25 +130,32 @@ def create_image_batch(i_start,i_stop,folder_name, final_size=28):
                              final_shape=final_shape
                              )
 
-        folder_path = os.path.join(
-            folder_name,
-            f'numbers_{final_size}',
-            str(number))
+        """
+        folder_path: 'data/training_data' -> number_path: '..data/training_data/178'
+        """
+        number_path = os.path.join(folder_path, str(number))
 
-        if not(os.path.isdir(folder_path)):
-            os.makedirs(folder_path)
+        if not(os.path.isdir(number_path)):
+            os.makedirs(number_path)
 
-        img.save(os.path.join(folder_path,f"{number}-{i}.jpg"))
+        img.save(os.path.join( number_path,f"{number}-{i}.jpg") )
 
         if i%100==0:
             print(i)
 
 
+def create_data_batch(image_size=96, train_batch_size = 1000, test_batch_size = 100):
+
+    final_size = 96
+
+    folder_path = os.path.join('data','training_data');
+    create_image_batch(i_stop=train_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=True)
+
+    folder_path = os.path.join('data','testing_data');
+    create_image_batch(i_stop=test_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=True)
+
 if __name__=='__main__':
 
-    font_paths =glob('./vitmoocr/fonts/*.ttf')
-    final_size = 96
-    folder_name = 'training_data'
-    create_image_batch(0,10000, folder_name=folder_name, final_size=final_size)
+    create_data_batch();
     # folder_name = 'testing_data'
     # create_image_batch(0,100, folder_name=folder_name, final_size=final_size)

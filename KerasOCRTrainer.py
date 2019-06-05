@@ -1,14 +1,17 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.callbacks import ModelCheckpoint
+
 
 def assemble_model(
     input_size = 28, 
     kernel_size=5, 
     n_conv_layers = 2, 
     dropout_rate = 0.1, 
-    optimizer = tf.keras.optimizers.RMSprop(lr=0.0001))
+    optimizer = tf.keras.optimizers.RMSprop(lr=0.0001),
+    num_classes = 201):
 
-    imput_shape = (imput_size, input_size, 1)
+    input_shape = (input_size, input_size, 1)
     kernel_shape = (kernel_size, kernel_size)
 
     model = tf.keras.models.Sequential()
@@ -33,7 +36,8 @@ def assemble_model(
 
     return model
 
-def assemble_data_generators(img_size = 28):
+
+def assemble_data_generators(img_size = 28, data_path_template='../data/{}'):
 
     train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
             # rescale=1./255,
@@ -42,14 +46,13 @@ def assemble_data_generators(img_size = 28):
             horizontal_flip=False)
 
     train_generator = train_datagen.flow_from_directory(
-        directory=r"./tf_files/numbers_train/",
+        directory=data_path_template.format('train'),
         target_size=(img_size, img_size),
         color_mode="grayscale",
         batch_size=32,
         class_mode="categorical",
         shuffle=True,
-        seed=42
-    )
+        seed=42)
 
     valid_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
             # rescale=1./255,
@@ -58,48 +61,87 @@ def assemble_data_generators(img_size = 28):
             horizontal_flip=False)
 
     valid_generator = valid_datagen.flow_from_directory(
-        directory=r"./tf_files/numbers_test/",
+        directory=data_path_template.format('test'),
         target_size=(img_size, img_size),
         color_mode="grayscale",
         batch_size=32,
         class_mode="categorical",
         shuffle=True,
-        seed=42
-    )
+        seed=42)
+
     return train_generator, valid_generator
 
-def train_model(model, train_generator, test_generator):
+
+def train_model(model, train_generator, valid_generator, model_name):
+    model_path = f'trained_models/{model_name}'
+    all_checkpoint_path = f'{model_path}/ep{epoch:02d}-va{val_acc:.2f}.hdf5'
+    save_all_callback = ModelCheckpoint(
+        all_checkpoint_path, 
+        monitor='val_acc',
+        save_best_only=False,
+    )
+    best_checkpoint_path = f'{model_path}/best_so_far.hdf5'
+    save_best_callback = ModelCheckpoint(
+        best_checkpoint_path, 
+        monitor='val_acc',
+        save_best_only=False,
+    )
+
+    STEP_SIZE_TRAIN=train_generator.n//train_generator.batch_size
+    STEP_SIZE_VALID=valid_generator.n//valid_generator.batch_size
+    model.fit_generator(
+        generator=train_generator,
+        steps_per_epoch=STEP_SIZE_TRAIN,
+        validation_data=valid_generator,
+        validation_steps=STEP_SIZE_VALID,
+        epochs=10,
+        callbacks=[save_all_callback, save_best_callback]
+    )
+
+
+def run_model_optomization():
+
+    num_classes = 201
+    input_sizes = [28, 32, 48]
+    kernel_sizes = [3, 5, 7]
+    dropout_rates = [0.05, 0.1, 0.2, 0.4]
+    n_features  = [16,32,64]
+    optimizers = [
+        tf.keras.optimizers.SGD(lr=0.01), 
+        tf.keras.optimizers.SGD(lr=0.01, nesterov=True),
+        tf.keras.optimizers.Adam(lr=0.001)]
+    n_conv_layers = [1,2,3]
+
+    input_size = input_sizes[0]
+    kernel_size = kernel_sizes[0]
+    dropout_rate = dropout_rates[0]
+    optimizer = optimizers[1]
+
+    # for for for...
+    model = assemble_model(
+        input_size = input_size, 
+        kernel_size=kernel_size, 
+        n_conv_layers = n_conv_layers, 
+        dropout_rate = dropout_rate, 
+        optimizer = optimizer,
+        num_classes = 201)
+
+    train_generator, valid_generator = \
+        assemble_data_generators(img_size = input_size)
+
+    model_name = f'{input_size}-{kernel_size}-{n_conv_layers}-{dropout_rate}-{optimizer}.hdf5'
+    train_model(model, train_generator, valid_generator, model_name)
     
+    
+
+
+def convert_model_to_h5():
+    converter = tf.lite.TFLiteConverter.from_keras_model_file(keras_file)
+    tflite_model = converter.convert()
+    open("converted_model.tflite", "wb").write(tflite_model)
 
 
 if __name__=='__main__':
 
-num_classes = 201
-input_sizes = [28, 32, 48]
-kernel_sizes = [3, 5, 7]
-dropout_rates = [0.05, 0.1, 0.2, 0.4]
-n_features  = [16,32,64]
-optimizers = [tf.keras.optimizers.SGD(lr=0.01), tf.keras.optimizers.RMSprop(lr=0.0001)]
-n_conv_layers = [1,2,3]
 
-
-
-
-STEP_SIZE_TRAIN=train_generator.n//train_generator.batch_size
-STEP_SIZE_VALID=valid_generator.n//valid_generator.batch_size
-model.fit_generator(
-    generator=train_generator,
-    steps_per_epoch=STEP_SIZE_TRAIN,
-    validation_data=valid_generator,
-    validation_steps=STEP_SIZE_VALID,
-    epochs=10
-)
-
-# Save tf.keras model in HDF5 format.
-keras_file = "keras_model.h5"
-tf.keras.models.save_model(model, keras_file)
-
-# Convert to TensorFlow Lite model.
-converter = tf.lite.TFLiteConverter.from_keras_model_file(keras_file)
-tflite_model = converter.convert()
-open("converted_model.tflite", "wb").write(tflite_model)
+    run_model_optomization
