@@ -144,7 +144,7 @@ def create_image_batch(i_stop, folder_path, final_size, start_fresh):
             print(i)
 
 
-def create_data_batch(image_size=96, train_batch_size = 1000, test_batch_size = 100):
+def create_data_batch(image_size=96, train_batch_size = 10000, test_batch_size = 5000):
 
     final_size = 96
 
