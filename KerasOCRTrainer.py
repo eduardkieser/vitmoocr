@@ -35,6 +35,7 @@ def assemble_model(
         loss=tf.keras.losses.categorical_crossentropy,
         optimizer=optimizer,
         metrics=[tf.keras.metrics.categorical_accuracy],)
+    model.summary()
 
     return model
 
@@ -98,11 +99,11 @@ def train_model(model, train_generator, valid_generator, model_name, epocs):
     print('start training')
     model.fit_generator(
         generator=train_generator,
-        steps_per_epoch=STEP_SIZE_TRAIN,
+        # steps_per_epoch=STEP_SIZE_TRAIN,
         validation_data=valid_generator,
-        validation_steps=STEP_SIZE_VALID,
+        # validation_steps=STEP_SIZE_VALID,
         epochs=epocs,
-        callbacks=[save_all_callback, save_best_callback]
+        callbacks=[save_best_callback]
     )
 
 
@@ -119,32 +120,33 @@ def run_model_optomization():
         tf.keras.optimizers.Adam(lr=0.001)]
     n_conv_layers = [1,2,3]
 
-    input_size = input_sizes[0]
-    kernel_size = kernel_sizes[0]
+    input_size = 36
+    kernel_size = kernel_sizes[-1]
     dropout_rate = dropout_rates[0]
     optimizer = optimizers[1]
 
     # for for for...
     model = assemble_model(
         input_size = input_size, 
-        n_features = n_features[0],
-        kernel_size=kernel_size, 
-        n_conv_layers = n_conv_layers[0], 
-        dropout_rate = dropout_rate, 
-        optimizer = optimizer,
+        n_features = 32,
+        kernel_size=5, 
+        n_conv_layers = 2, 
+        dropout_rate = 0.1, 
+        optimizer = tf.keras.optimizers.RMSprop(lr=0.0001),
         num_classes = 200)
 
     train_generator, valid_generator = \
         assemble_data_generators(img_size = input_size)
 
-    model_name = f'{input_size}-{kernel_size}-{n_conv_layers}-{dropout_rate}-{optimizer}.hdf5'
-    train_model(model, train_generator, valid_generator, model_name, epocs=5)
+    model_name = f'{input_size}-{kernel_size}-{n_conv_layers}-{dropout_rate}.hdf5'
+    train_model(model, train_generator, valid_generator, model_name, epocs=20)
     
     
 def convert_model_to_h5():
     converter = tf.lite.TFLiteConverter.from_keras_model_file(keras_file)
     tflite_model = converter.convert()
     open("converted_model.tflite", "wb").write(tflite_model)
+
 
 
 if __name__=='__main__':

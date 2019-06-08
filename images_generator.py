@@ -104,7 +104,7 @@ def create_image_batch(i_stop, folder_path, final_size, start_fresh):
         rotation = random.randint(-20,20)
         text_offset = (random.randint(-30,30),random.randint(-30,30))
         number = -1
-        while number<0:
+        while (number<0 or number>200):
             number = int(np.random.triangular(-20,150,200))
         font_size = random.randint(80,110)
         font_ix = random.randint(0,len(font_paths)-1)
@@ -144,7 +144,7 @@ def create_image_batch(i_stop, folder_path, final_size, start_fresh):
             print(i)
 
 
-def create_data_batch(image_size=96, train_batch_size = 10000, test_batch_size = 5000):
+def create_data_batch(image_size=96, train_batch_size = 200000, test_batch_size = 5000):
 
     final_size = 96
 
