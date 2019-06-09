@@ -25,7 +25,7 @@ def assemble_model(
             strides=(1, 1),
             activation='relu',
             input_shape=input_shape))
-        model.add(tf.keras.layers.Dropout(rate=dropout_rate))    
+        # model.add(tf.keras.layers.Dropout(rate=dropout_rate))    
 
     model.add(tf.keras.layers.Flatten())
     model.add(tf.keras.layers.Dense(1000, activation='relu'))
@@ -130,7 +130,7 @@ def run_model_optomization():
         input_size = input_size, 
         n_features = 32,
         kernel_size=5, 
-        n_conv_layers = 2, 
+        n_conv_layers = 3, 
         dropout_rate = 0.1, 
         optimizer = tf.keras.optimizers.RMSprop(lr=0.0001),
         num_classes = 200)
