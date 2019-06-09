@@ -89,7 +89,7 @@ def get_light_color():
 
 def create_image_batch(i_stop, folder_path, final_size, start_fresh):
 
-    i_start = 0;
+    i_start = 0
 
     if start_fresh:
         if os.path.isdir(folder_path):
@@ -105,7 +105,7 @@ def create_image_batch(i_stop, folder_path, final_size, start_fresh):
         text_offset = (random.randint(-30,30),random.randint(-30,30))
         number = -1
         while (number<0 or number>200):
-            number = int(np.random.triangular(-20,150,200))
+            number = int(np.random.triangular(-20,200,201))
         font_size = random.randint(80,110)
         font_ix = random.randint(0,len(font_paths)-1)
         font = ImageFont.truetype(font_paths[font_ix],font_size)
@@ -149,7 +149,7 @@ def create_data_batch(image_size=96, train_batch_size = 200000, test_batch_size 
     final_size = 96
 
     folder_path = os.path.join('data','training_data');
-    create_image_batch(i_stop=train_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=True)
+    create_image_batch(i_stop=train_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=False)
 
     folder_path = os.path.join('data','testing_data');
     create_image_batch(i_stop=test_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=True)
