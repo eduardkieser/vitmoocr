@@ -87,6 +87,60 @@ def get_light_color():
             random.randint(117,255))
 
 
+def create_nan_batch(final_size, folder_path, n):
+
+    font_paths =glob('./vitmoocr/fonts/*.ttf')
+    final_shape = (final_size,final_size)
+
+    for i in range(n):
+        rotation = random.randint(-20,20)
+        text_offset = (random.randint(-30,30),random.randint(-30,30))
+        
+        all_chars = 'a b c d e f g h i j k l m n o p q r s t u v w x y x ~ ! @ # $ % ^ & * ( ) _ + = ; '.split(' ')
+        str_len = random.randint(0,4)
+        word = random.sample(population=all_chars, k=str_len)
+        word = ''.join(word)
+
+        font_size = random.randint(80,110)
+        font_ix = random.randint(0,len(font_paths)-1)
+        font = ImageFont.truetype(font_paths[font_ix],font_size)
+
+        if i%2==0:
+            text_color = get_dark_color()
+            back_color = get_light_color()
+        else:
+            text_color = get_light_color()
+            back_color = get_dark_color()
+
+        original_shape = (random.randint(200,300),random.randint(150,200))
+
+
+        img = generate_image(font=font,
+                             text=word,
+                             rotation=rotation,
+                             shape=original_shape,
+                             back_color=back_color,
+                             text_color=text_color,
+                             text_offset=text_offset,
+                             final_shape=final_shape
+                             )
+
+        """
+        folder_path: 'data/training_data' -> number_path: '..data/training_data/178'
+        """
+        number_path = os.path.join(folder_path, 'nan')
+
+        if not(os.path.isdir(number_path)):
+            os.makedirs(number_path)
+
+        img.save(os.path.join( number_path,f"nan-{i}.jpg") )
+
+        if i%100==0:
+            print(i)
+
+
+
+
 def create_image_batch(i_stop, folder_path, final_size, start_fresh):
 
     i_start = 0
@@ -105,7 +159,7 @@ def create_image_batch(i_stop, folder_path, final_size, start_fresh):
         text_offset = (random.randint(-30,30),random.randint(-30,30))
         number = -1
         while (number<0 or number>200):
-            number = int(np.random.triangular(-20,200,201))
+            number = int(np.random.triangular(-50,200,201))
         font_size = random.randint(80,110)
         font_ix = random.randint(0,len(font_paths)-1)
         font = ImageFont.truetype(font_paths[font_ix],font_size)
@@ -152,10 +206,18 @@ def create_data_batch(image_size=96, train_batch_size = 200000, test_batch_size 
     create_image_batch(i_stop=train_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=False)
 
     folder_path = os.path.join('data','testing_data');
-    create_image_batch(i_stop=test_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=True)
+    create_image_batch(i_stop=test_batch_size, folder_path=folder_path, final_size=final_size,start_fresh=False)
+
+def create_nan_data_batch():
+
+    final_size = 96
+    folder_path = os.path.join('data','training_data');
+    create_nan_batch(final_size, folder_path,5000);
+
+    folder_path = os.path.join('data','testing_data');
+    create_nan_batch(final_size, folder_path,5000);
 
 if __name__=='__main__':
 
-    create_data_batch();
-    # folder_name = 'testing_data'
-    # create_image_batch(0,100, folder_name=folder_name, final_size=final_size)
+    # create_data_batch();
+    create_nan_data_batch()
