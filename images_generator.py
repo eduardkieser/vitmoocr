@@ -157,9 +157,18 @@ def create_image_batch(i_stop, folder_path, final_size, start_fresh):
 
         rotation = random.randint(-20,20)
         text_offset = (random.randint(-30,30),random.randint(-30,30))
-        number = -1
-        while (number<0 or number>200):
-            number = int(np.random.triangular(-50,200,201))
+        # number = -1
+        # while (number<0 or number>200):
+        #     number = int(np.random.triangular(-50,200,201))
+        #
+        group = np.random(1, 10)
+        if group <2:
+            number = random.randint(0,9)
+        elif group <5:
+            number = random.randint(10,99)
+        else:
+            number = random.randint(100,200)
+
         font_size = random.randint(80,110)
         font_ix = random.randint(0,len(font_paths)-1)
         font = ImageFont.truetype(font_paths[font_ix],font_size)

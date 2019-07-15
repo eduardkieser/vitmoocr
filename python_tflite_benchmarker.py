@@ -31,6 +31,8 @@ def run_benchmark(model_path = "converted_models/48-3-4-2-color-with-nan.tflite"
     input_shape = input_details[0]['shape']
 
     files = glob('data/testing_data/*/*')
+    incorrect_classes = []
+
     for ix, file in enumerate(files):
         try:
             img = Image.open(file)
@@ -47,13 +49,21 @@ def run_benchmark(model_path = "converted_models/48-3-4-2-color-with-nan.tflite"
             else:
                 result = int( int(ref)==int(res) )
 
-
             results_list.append(result)
+
+            if not result:
+                incorrect_classes.append({'ref':ref, 'result':result})
 
             if ix%10==0:
                 print(np.mean(results_list)*100)
+
+            if ix >= 10000:
+                break
         except:
             pass
+
+    incorrect_classes_df = pd.DataFrame(incorrect_classes)
+    incorrect_classes_df.to_csv('incorrect classes csv')
 
 if __name__=='__main__':
     run_benchmark()
