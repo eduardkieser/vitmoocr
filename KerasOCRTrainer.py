@@ -124,10 +124,6 @@ def create_labels_file(train_generator):
     labels_df.to_csv('derp.txt')
 
     i=0
-    
-
-
-
 
 
 def train_model(model, train_generator, valid_generator, model_name, epocs):
