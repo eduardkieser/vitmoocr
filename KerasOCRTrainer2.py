@@ -61,15 +61,12 @@ def assemble_data_generators(img_size, data_path_template='data/{}'):
             # zoom_range=0.2,
             horizontal_flip=False)
 
-    train_generator = train_datagen.flow_from_directory(
-        directory=data_path_template.format('training_data/'),
-        target_size=(img_size, img_size),
-        # color_mode="grayscale",
-        color_mode='rgb',
-        batch_size=32,
-        class_mode="categorical",
-        shuffle=True,
-        seed=42)
+    train_generator = train_datagen.flow_from_dataframe(dataframe, directory=None, x_col='filename', y_col='class', target_size=(256, 256),
+                        color_mode='rgb', classes=None, class_mode='categorical', batch_size=32, shuffle=True,
+                        seed=None, save_to_dir=None, save_prefix='', save_format='png', subset=None,
+                        interpolation='nearest', drop_duplicates=True)
+
+
 
     valid_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
             rescale=1./255,
