@@ -1,0 +1,9 @@
+tensorflow-gpu
+pandas
+numpy
+matplotlib
+sklearn
+jupyterlab
+pydot
+graphviz
+Pillow
