@@ -1,0 +1,6 @@
+pyzbar
+cv2
+numpy
+pandas
+matplotlib
+Pillow

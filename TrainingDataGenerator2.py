@@ -37,7 +37,7 @@ class ScreenGenerator():
                  number_noise_font_range=(3, 6),
                  add_qr_corners=True,
                  data_path='/data',
-                 screen_size=(1000, 1000),
+                 screen_size=(800, 800),
                  path_to_fonts='fonts',
                  size_delta = (0,0)
                  ):
@@ -57,7 +57,7 @@ class ScreenGenerator():
             glob(path_to_fonts + '/*.otf') + \
             glob(path_to_fonts + '/*/*/*.ttf') + \
             glob(path_to_fonts + '/*/*/*.otf')
-        self.qr_box_size = 4
+        self.qr_box_size = 5
         self.qr_border = 4
         self.qr_size = self.qr_box_size * 21 + 2 * self.qr_box_size * self.qr_border
         self.add_qr = True
@@ -187,7 +187,8 @@ class ScreenGenerator():
     def paint_frame_outlines_and_codes(self, numbers, img=None):
         qr_size = self.qr_size
         if img is None:
-            img = img = Image.new(mode="RGB", size=self.screen_size)
+            color = (117,117,117)
+            img = img = Image.new(mode="RGB", size=self.screen_size, color = color)
         draw = ImageDraw.Draw(img)
         for ix, frame in enumerate(self.frames):
             number = numbers[ix]
@@ -440,4 +441,4 @@ if __name__=='__main__':
     # draw.rectangle(((0,0), generator.screen_size), outline='white', width=2)
     # sbs_img
 
-    VitmoVideoWriter(fps=1, seconds=60*120).play_video()
+    VitmoVideoWriter(fps=1, seconds=8*60*120).play_video()
