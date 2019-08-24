@@ -319,7 +319,7 @@ class ScreenGenerator():
         numbers_img = self.paint_text_noise(numbers_img)
         numbers_img = self.paint_numbers_to_frames(self.selected_numbers,numbers_img)
         numbers_img = self.paint_id_and_corner_markers(numbers_id, numbers_img)
-        numbers_img = self.paint_frame_outlines(numbers_img)
+        # numbers_img = self.paint_frame_outlines(numbers_img)
         return numbers_img
 
     def generate_labels_img(self, labels_id):
@@ -441,4 +441,4 @@ if __name__=='__main__':
     # draw.rectangle(((0,0), generator.screen_size), outline='white', width=2)
     # sbs_img
 
-    VitmoVideoWriter(fps=1, seconds=8*60*120).play_video()
+    VitmoVideoWriter(fps=1, seconds=24*60*60).play_video()
