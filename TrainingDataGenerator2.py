@@ -54,9 +54,9 @@ class ScreenGenerator():
         self.selected_numbers = []
         self.font_paths = \
             glob(path_to_fonts + '/*.ttf') + \
-            glob(path_to_fonts + '/*.otf') + \
-            glob(path_to_fonts + '/*/*/*.ttf') + \
-            glob(path_to_fonts + '/*/*/*.otf')
+            glob(path_to_fonts + '/*.otf') # + \
+            # glob(path_to_fonts + '/*/*/*.ttf') + \
+            # glob(path_to_fonts + '/*/*/*.otf')
         self.qr_box_size = 5
         self.qr_border = 4
         self.qr_size = self.qr_box_size * 21 + 2 * self.qr_box_size * self.qr_border
@@ -213,8 +213,8 @@ class ScreenGenerator():
         if img is None:
             img = Image.new("RGB", self.screen_size, color=self.background_color)
 
-        line_color = self.get_foreground_contrast_color()
-        fill_color = self.get_foreground_contrast_color()
+        line_color = self.get_background_ish_color()
+        fill_color = self.get_background_ish_color()
 
         draw = ImageDraw.Draw(img)
         for geo_ix in range(n_geometries):
@@ -308,6 +308,15 @@ class ScreenGenerator():
             (f2+random.randint(60, 150))%255,
             (f3+random.randint(60, 150))%255)
 
+    def get_background_ish_color(self):
+        f1, f2, f3 = self.background_color
+        rg = 50
+        return(
+            np.clip(f1 + random.randint(-rg, rg), 0, 255),
+            np.clip(f2 + random.randint(-rg, rg), 0, 255),
+            np.clip(f3 + random.randint(-rg, rg), 0, 255),
+        )
+
     def sample_numbers(self):
         if self.numbers == []:
             self.generate_numbers()
@@ -319,7 +328,7 @@ class ScreenGenerator():
         numbers_img = self.paint_text_noise(numbers_img)
         numbers_img = self.paint_numbers_to_frames(self.selected_numbers,numbers_img)
         numbers_img = self.paint_id_and_corner_markers(numbers_id, numbers_img)
-        numbers_img = self.paint_frame_outlines(numbers_img)
+        # numbers_img = self.paint_frame_outlines(numbers_img)
         return numbers_img
 
     def generate_labels_img(self, labels_id):
@@ -441,4 +450,4 @@ if __name__=='__main__':
     # draw.rectangle(((0,0), generator.screen_size), outline='white', width=2)
     # sbs_img
 
-    VitmoVideoWriter(fps=1, seconds=8*60*120).play_video()
+    VitmoVideoWriter(fps=1, seconds=24*60*60).play_video()
