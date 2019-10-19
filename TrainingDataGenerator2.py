@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import qrcode
 import random
-from cv2 import VideoWriter, VideoWriter_fourcc, imshow, waitKey
+from cv2 import VideoWriter, VideoWriter_fourcc, imshow, waitKey, getPerspectiveTransform, warpPerspective
 import time
 
 
@@ -182,7 +182,58 @@ class ScreenGenerator():
         qr.add_data(text)
         qr.make()
         img = qr.make_image(fill_color="black", back_color="white")
+        img = self.change_perspective(img)
         return img
+
+    def change_perspective(self, img):
+
+        direction = 'left'
+
+        img = np.array(img).astype(np.uint8)*255
+        skew_factor = 0.05
+        width, height = img.shape[:2]
+        scale_factor = min(width, height)
+        if direction=='right':
+            skew_matrix = np.array([
+                [0, 0],
+                [0, 1],
+                [0, 1],
+                [0, 0]
+            ])
+        if direction=='left':
+            skew_matrix = np.array([
+                [0, 1],
+                [0, 0],
+                [0, 0],
+                [0, 1]
+            ])
+
+        y_stretch_factor = -0.1
+        y_stretch_matrix = np.array([
+            [0, -1],
+            [0, -1],
+            [0, -1],
+            [0, -1]
+        ])
+
+        a = skew_matrix * skew_factor * scale_factor + \
+            y_stretch_matrix * y_stretch_factor * scale_factor
+
+        pts1 = np.float32([
+            [0, 0],
+            [width, 0],
+            [width, height],
+            [0, height]
+        ])
+        pts2 = np.float32([
+            [0 + a[0, 0], 0 + a[0, 1]],
+            [width - a[1, 0], 0 + a[1, 1]],
+            [width - a[2, 0], height - a[2, 1]],
+            [0 + a[3, 0], height - a[3, 1]]
+        ])
+        M = getPerspectiveTransform(pts1, pts2)
+        img = warpPerspective(img, M, (height, width), borderValue=(255, 255, 255))
+        return Image.fromarray(img)
 
     def paint_frame_outlines_and_codes(self, numbers, img=None):
         qr_size = self.qr_size
