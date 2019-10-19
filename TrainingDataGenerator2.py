@@ -187,10 +187,10 @@ class ScreenGenerator():
 
     def change_perspective(self, img):
 
-        direction = 'left'
+        direction = 'top'
 
         img = np.array(img).astype(np.uint8)*255
-        skew_factor = 0.05
+        skew_factor = 0.1
         width, height = img.shape[:2]
         scale_factor = min(width, height)
         if direction=='right':
@@ -200,6 +200,7 @@ class ScreenGenerator():
                 [0, 1],
                 [0, 0]
             ])
+            y_stretch_factor = -0.1
         if direction=='left':
             skew_matrix = np.array([
                 [0, 1],
@@ -207,8 +208,27 @@ class ScreenGenerator():
                 [0, 0],
                 [0, 1]
             ])
+            y_stretch_factor = -0.1
 
-        y_stretch_factor = -0.1
+        if direction=='top':
+            skew_matrix = np.array([
+                [1, 0],
+                [1, 0],
+                [0, 0],
+                [0, 0]
+            ])
+            y_stretch_factor = 0.1
+
+        if direction=='bottom':
+            skew_matrix = np.array([
+                [0, 0],
+                [0, 0],
+                [1, 0],
+                [1, 0]
+            ])
+            y_stretch_factor = 0.1
+
+
         y_stretch_matrix = np.array([
             [0, -1],
             [0, -1],
