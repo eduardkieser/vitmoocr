@@ -1,5 +1,6 @@
 pyzbar
-cv2
+qrcode
+opencv-python
 numpy
 pandas
 matplotlib

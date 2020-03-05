@@ -8,7 +8,35 @@ import qrcode
 import random
 from cv2 import VideoWriter, VideoWriter_fourcc, imshow, waitKey, getPerspectiveTransform, warpPerspective
 import time
+from enum import Enum
 
+class ColorScheme(Enum):
+    random = 0
+    light_back = 1
+    dark_back = 2
+
+class Config():
+    def __init__(self):
+        self.width = 900
+        self.height = 900
+        self.fps = 1
+        self.fpb = 5
+        self.seconds = int(24*60*60)
+        self.color_scheme = ColorScheme.random
+        self.adjacent_chars = ['(',')','/','|']
+        self.n_frames_per_screen = 10
+        self.font_size_range = (40, 120)
+        self.number_range = (0, 200)
+        self.include_number_noise = True
+        self.number_noise_font_range=(3, 6)
+        self.size_delta = (0,0)
+        self.add_qr_corners=True
+        self.data_path='/data'
+        self.path_to_fonts='fonts'
+        self.qr_box_size = 5
+        self.qr_border = 4
+        self.qr_size = self.qr_box_size * 21 + 2 * self.qr_box_size * self.qr_border
+        self.add_qr = True
 
 class Frame():
     def __init__(self, left, right, top, bottom, font_size=None, font_path=None):
@@ -29,44 +57,19 @@ class Frame():
 
 
 class ScreenGenerator():
-    def __init__(self,
-                 n_frames_per_screen=10,
-                 font_size_range=(40, 120),
-                 number_range=(0, 200),
-                 include_number_noise=True,
-                 number_noise_font_range=(3, 6),
-                 add_qr_corners=True,
-                 data_path='/data',
-                 screen_size=(800, 800),
-                 path_to_fonts='fonts',
-                 size_delta = (0,0)
-                 ):
-        self.n_frames_per_screen = n_frames_per_screen
-        self.font_size_range = font_size_range
-        self.number_range = number_range
-        self.include_number_noise = include_number_noise
-        self.number_noise_font_range = number_noise_font_range
-        self.add_qr_corners = add_qr_corners
-        self.data_path = data_path
-        self.screen_size = screen_size
+    def __init__(self):
+        self.config = Config()
         self.frames = []
         self.numbers = []
         self.selected_numbers = []
         self.font_paths = \
-            glob(path_to_fonts + '/*.ttf') + \
-            glob(path_to_fonts + '/*.otf') # + \
-            # glob(path_to_fonts + '/*/*/*.ttf') + \
-            # glob(path_to_fonts + '/*/*/*.otf')
-        self.qr_box_size = 5
-        self.qr_border = 4
-        self.qr_size = self.qr_box_size * 21 + 2 * self.qr_box_size * self.qr_border
-        self.add_qr = True
+            glob(self.config.path_to_fonts + '/*.ttf') + \
+            glob(self.config.path_to_fonts + '/*.otf') # + \
+        
         self.center_frame = None
-        self.frame_rate = 1
         self.foreground_color = None
         self.background_color = None
         self.refresh_colors()
-        self.size_delta = size_delta
 
     def get_text_size(self, font_size, font_path='vitmoocr/fonts/DejaVuSans-Bold.ttf'):
         font = ImageFont.truetype(font_path, font_size)
@@ -82,8 +85,8 @@ class ScreenGenerator():
             frame.font_path = font_path
 
     def compose_screen(self):
-        screen_w, screen_h = self.screen_size
-        qr_size = self.qr_size
+        screen_w, screen_h = self.config.width, self.config.height
+        qr_size = self.config.qr_size
         self.frames = []
         self.center_frame = Frame(
             left=int(screen_w / 2 - qr_size / 2),
@@ -102,26 +105,38 @@ class ScreenGenerator():
             right=screen_w
         )
 
-        n_frames_per_screen = self.n_frames_per_screen
+        n_frames_per_screen = self.config.n_frames_per_screen
         n_failiors = 0
 
-        while (len(self.frames) < n_frames_per_screen) & (n_failiors < n_frames_per_screen):
+        while (len(self.frames) < n_frames_per_screen) & (n_failiors < n_frames_per_screen*5):
             overlaps = False
 
             # np.random.shuffle(self.font_paths)
             font_path = self.font_paths[0]
-            font_size = np.random.randint(self.font_size_range[0], self.font_size_range[1])
+            font_size = np.random.randint(self.config.font_size_range[0], self.config.font_size_range[1])
             # Randomly choose a top left corner
             text_width, text_height = self.get_text_size(font_size, font_path)
-            text_width, text_height = (text_width+self.size_delta[0]),(text_height+self.size_delta[1])
+            text_width, text_height = (text_width+self.config.size_delta[0]),(text_height+self.config.size_delta[1])
             top_candidate = np.random.randint(0, screen_h - text_height)
             left_candidate = np.random.randint(0, screen_w - text_width)
-            # check if the candidate overlaps with any existing frames
+
+            center_x_candidate = int(left_candidate+text_width/2)
+            center_y_candidate = int(top_candidate+text_height/2)
+            # check if the candidate overlaps with any existing frames or qr
             for frame in self.frames + [self.center_frame, TL_frame,BR_frame]:
                 overlap_vert = top_candidate in range(frame.top - text_height, frame.bottom)
                 overlap_hors = left_candidate in range(frame.left - text_width, frame.right)
 
+                x_delta = abs(frame.center[0]-center_x_candidate)
+                y_delta = abs(frame.center[1]-center_y_candidate)
+
+                if (x_delta<qr_size) and (y_delta<qr_size):
+                    # qr boxes overlap
+                    overlaps = True
+                    break
+
                 if overlap_vert and overlap_hors:
+                    # numbere boxes overlap
                     n_failiors = n_failiors + 1
                     overlaps = True
                     break
@@ -176,8 +191,8 @@ class ScreenGenerator():
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=self.qr_box_size,
-            border=self.qr_border,
+            box_size=self.config.qr_box_size,
+            border=self.config.qr_border,
         )
         qr.add_data(text)
         qr.make()
@@ -256,10 +271,11 @@ class ScreenGenerator():
         return Image.fromarray(img)
 
     def paint_frame_outlines_and_codes(self, numbers, img=None):
-        qr_size = self.qr_size
+        qr_size = self.config.qr_size
         if img is None:
             color = (117,117,117)
-            img = img = Image.new(mode="RGB", size=self.screen_size, color = color)
+            screen_size = (self.config.width,self.config.height)
+            img = img = Image.new(mode="RGB", size=screen_size, color = color)
         draw = ImageDraw.Draw(img)
         for ix, frame in enumerate(self.frames):
             number = numbers[ix]
@@ -280,18 +296,19 @@ class ScreenGenerator():
         return img
 
     def paint_geometric_noise(self,img=None, n_geometries = 20):
+        screen_size = self.config.width, self.config.height
 
         if img is None:
-            img = Image.new("RGB", self.screen_size, color=self.background_color)
+            img = Image.new("RGB", screen_size, color=self.background_color)
 
         line_color = self.get_background_ish_color()
         fill_color = self.get_background_ish_color()
 
         draw = ImageDraw.Draw(img)
         for geo_ix in range(n_geometries):
-            center = (np.random.randint(0, self.screen_size[0]), np.random.randint(0, self.screen_size[1]))
-            width = np.random.randint(0, self.screen_size[0] / 5)
-            height = np.random.randint(0, self.screen_size[0] / 5)
+            center = (np.random.randint(0, screen_size[0]), np.random.randint(0, screen_size[1]))
+            width = np.random.randint(0, screen_size[0] / 5)
+            height = np.random.randint(0, screen_size[0] / 5)
             geometry = np.random.randint(0, 3)
             fill = bool(random.getrandbits(1))
             line_weight = np.random.randint(1,4)
@@ -307,16 +324,16 @@ class ScreenGenerator():
 
 
     def paint_text_noise(self, img=None, n=20):
-
+        screen_size = self.config.width, self.config.height
         if img is None:
-            img = Image.new("RGB", self.screen_size, color=self.background_color)
+            img = Image.new("RGB", screen_size, color=self.background_color)
         draw = ImageDraw.Draw(img)
         text_color = self.get_foreground_contrast_color()
         font_path = self.font_paths[0]
-        font_size = int(np.random.randint(self.font_size_range[0], self.font_size_range[1])/3)
+        font_size = int(np.random.randint(self.config.font_size_range[0], self.config.font_size_range[1])/3)
         font = ImageFont.truetype(font_path, font_size)
         for ix in range(n):
-            top_left = (np.random.randint(0, self.screen_size[0]), np.random.randint(0, self.screen_size[1]))
+            top_left = (np.random.randint(0, screen_size[0]), np.random.randint(0, screen_size[1]))
             text = self.generate_random_nan()
             draw.text(top_left, str(text), font=font, fill=self.foreground_color)
 
@@ -324,10 +341,11 @@ class ScreenGenerator():
 
 
     def paint_id_and_corner_markers(self, frame_id, img=None):
-        width, height = self.screen_size
-        qr_size = self.qr_size
+        width, height = self.config.width, self.config.height
+        screen_size = width, height
+        qr_size = self.config.qr_size
         if img is None:
-            img = Image.new(mode="RGB", size=self.screen_size)
+            img = Image.new(mode="RGB", size=screen_size)
         code_img = self.get_qr_img('TL')
         img.paste(code_img, box=(0, 0))
         code_img = self.get_qr_img('BR')
@@ -337,17 +355,29 @@ class ScreenGenerator():
         return img
 
     def paint_numbers_to_frames(self, numbers, img=None):
+        screen_size = self.config.width, self.config.height
         if img is None:
-            img = Image.new("RGB", self.screen_size, color=self.background_color)
+            img = Image.new("RGB", screen_size, color=self.background_color)
         draw = ImageDraw.Draw(img)
         for ix, frame in enumerate(self.frames):
             number = numbers[ix]
             if type(number) is int:
                 number = "{:>3d}".format(number)
             font = ImageFont.truetype(frame.font_path, frame.font_size)
-            top_left = (frame.top_left[0]+self.size_delta[0]/2, frame.top_left[1]+self.size_delta[1]/2)
-            draw.text(top_left, str(number), font=font, fill=self.foreground_color)
+            top_left = (frame.top_left[0]+self.config.size_delta[0]/2, frame.top_left[1]+self.config.size_delta[1]/2)
+            number_str = self.add_adjacent_charachters(str(number))
+            draw.text(top_left, number_str, font=font, fill=self.foreground_color)
         return img
+
+    def add_adjacent_charachters(self, number_str):
+        chars = self.config.adjacent_chars
+        shuffle(chars)
+        if random.randint(0,10)<3:
+            number_str = chars[0]+number_str
+        if random.randint(0,10)<3:
+            number_str = number_str + chars[1]
+        return number_str
+        
 
     def refresh_colors(self):
         def get_dark_color():
@@ -375,9 +405,9 @@ class ScreenGenerator():
     def get_foreground_contrast_color(self):
         f1,f2,f3 = self.foreground_color
         return (
-            (f1+random.randint(60, 150))%255,
-            (f2+random.randint(60, 150))%255,
-            (f3+random.randint(60, 150))%255)
+            (f1+random.randint(40, 150))%255,
+            (f2+random.randint(40, 150))%255,
+            (f3+random.randint(40, 150))%255)
 
     def get_background_ish_color(self):
         f1, f2, f3 = self.background_color
@@ -391,7 +421,7 @@ class ScreenGenerator():
     def sample_numbers(self):
         if self.numbers == []:
             self.generate_numbers()
-        self.selected_numbers = sample(self.numbers, self.n_frames_per_screen)
+        self.selected_numbers = sample(self.numbers, self.config.n_frames_per_screen)
 
     def generate_numbers_img(self, numbers_id):
 
@@ -409,7 +439,6 @@ class ScreenGenerator():
         labels_img = self.paint_id_and_corner_markers(labels_id, labels_img)
         return labels_img
 
-
     def generate_image_set(self):
         if self.selected_numbers == []:
             self.sample_numbers()
@@ -422,17 +451,15 @@ class ScreenGenerator():
 
 class VitmoVideoWriter():
     def __init__(
-            self,
-            width=1000,
-            height=1000,
-            fps=1,
-            seconds=10
+        self,
+        config = Config()
     ):
-        self.width = width
-        self.height = height
-        self.fps = fps
-        self.fpb = 5
-        self.seconds = seconds
+        
+        self.width = config.width
+        self.height = config.height
+        self.fps = config.fps
+        self.fpb = config.fpb
+        self.seconds = config.seconds
 
     def generate_video(self):
                 fourcc = VideoWriter_fourcc(*'MP42')
@@ -483,11 +510,7 @@ class VitmoVideoWriter():
 
     def video_frame_generator(self):
         n_batches = int((self.fps*self.seconds)/self.fpb)
-        frame_generator = ScreenGenerator(
-            n_frames_per_screen=20,
-            screen_size=(self.width, self.height),
-            size_delta=(50,50)
-        )
+        frame_generator = ScreenGenerator()
 
         for i in range(n_batches):
             print(f'{int(((n_batches-i)/n_batches)*100)}% left')
@@ -521,4 +544,4 @@ if __name__=='__main__':
     # draw.rectangle(((0,0), generator.screen_size), outline='white', width=2)
     # sbs_img
 
-    VitmoVideoWriter(fps=1, seconds=24*60*60).play_video()
+    VitmoVideoWriter().play_video()
